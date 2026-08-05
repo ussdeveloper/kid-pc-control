@@ -1,9 +1,8 @@
 ﻿using System.Diagnostics;
 using System.IO;
-using System.Reflection;
+using System.Security.Principal;
 using System.Windows;
 using KidPcControl.Shared;
-using KidPcControl.Shared.Models;
 using KidPcControl.Shared.Security;
 using KidPcControl.Shared.Storage;
 
@@ -14,6 +13,11 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        DarkTitleBar.Apply(this);
+        Background = new System.Windows.Media.SolidColorBrush(
+            (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#FF0F1216")!);
+        Foreground = new System.Windows.Media.SolidColorBrush(
+            (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#FFEEF2F7")!);
     }
 
     private void RoleKid_OnChecked(object sender, RoutedEventArgs e)
@@ -33,9 +37,27 @@ public partial class MainWindow : Window
         ErrorText.Text = string.Empty;
         var isKid = RoleKid.IsChecked == true;
 
+        if (isKid && !IsRunningAsAdmin())
+        {
+            var answer = MessageBox.Show(this,
+                "Instalacja trybu Kid wymaga Administratora (usługa Windows).\n\nPotwierdź UAC — Setup uruchomi się ponownie.",
+                AppConstants.AppName,
+                MessageBoxButton.OKCancel,
+                MessageBoxImage.Warning);
+            if (answer != MessageBoxResult.OK)
+            {
+                ErrorText.Text = "Anulowano — bez Administratora nie zainstaluję serwisu.";
+                return;
+            }
+            if (!TryRelaunchElevated())
+                ErrorText.Text = "Nie udało się uruchomić Setup jako Administrator (UAC anulowane?).";
+            else
+                Close();
+            return;
+        }
+
         Directory.CreateDirectory(AppConstants.ProgramDataDir);
-        var rolePath = Path.Combine(AppConstants.ProgramDataDir, "role.txt");
-        File.WriteAllText(rolePath, isKid ? "Kid" : "Admin");
+        File.WriteAllText(Path.Combine(AppConstants.ProgramDataDir, "role.txt"), isKid ? "Kid" : "Admin");
 
         if (isKid)
         {
@@ -46,74 +68,146 @@ public partial class MainWindow : Window
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(AdminPasswordBox.Password) ||
-                AdminPasswordBox.Password != AdminPasswordConfirmBox.Password)
+            var password = AdminPasswordBox.Password ?? string.Empty;
+            var confirm = AdminPasswordConfirmBox.Password ?? string.Empty;
+            if (password.Length < 4)
             {
-                ErrorText.Text = "Hasła admina muszą być zgodne i niepuste.";
+                ErrorText.Text = "Hasło admina: minimum 4 znaki.";
+                return;
+            }
+            if (password != confirm)
+            {
+                ErrorText.Text = "Hasła nie są zgodne — wpisz to samo hasło w obu polach.";
+                return;
+            }
+
+            try
+            {
+                AdminCredentials.SetPassword(password);
+            }
+            catch (Exception ex)
+            {
+                ErrorText.Text = $"Nie zapisano hasła: {ex.Message}";
+                return;
+            }
+
+            if (!AdminCredentials.VerifyPassword(password))
+            {
+                ErrorText.Text = "Hasło zapisane, ale weryfikacja nie przeszła — spróbuj ponownie.";
                 return;
             }
 
             var policy = PolicyStore.LoadOrCreate();
             policy.Role = "Kid";
             policy.DeviceName = name;
-            policy.AdminPasswordHash = PasswordHasher.Hash(AdminPasswordBox.Password);
+            policy.AdminPasswordHash = AdminCredentials.ReadHash();
             PolicyStore.Save(policy);
 
-            TryRegisterService();
+            if (!TryRegisterService(out var serviceError))
+            {
+                ErrorText.Text = serviceError + "\nHasło zostało zapisane — możesz poprawić usługę i nie musisz zmieniać hasła.";
+                return;
+            }
+
+            var tray = Path.Combine(AppContext.BaseDirectory, "KidPcControl.Tray.exe");
+            var agent = Path.Combine(AppContext.BaseDirectory, "KidPcControl.Agent.exe");
+            if (File.Exists(tray)) Autostart.Enable("KidPcControlTray", tray);
+            if (File.Exists(agent)) Autostart.Enable("KidPcControlAgent", agent);
             TryStartProcess("KidPcControl.Tray.exe");
             TryStartProcess("KidPcControl.Agent.exe");
+            Autostart.Disable("KidPcControlAdmin");
         }
         else
         {
-            File.WriteAllText(Path.Combine(AppConstants.ProgramDataDir, "role.txt"), "Admin");
+            var admin = Path.Combine(AppContext.BaseDirectory, "KidPcControl.Admin.exe");
+            if (File.Exists(admin))
+                Autostart.Enable("KidPcControlAdmin", admin);
+            Autostart.Disable("KidPcControlTray");
+            Autostart.Disable("KidPcControlAgent");
             TryStartProcess("KidPcControl.Admin.exe");
         }
 
         MessageBox.Show(this,
             isKid
-                ? "Skonfigurowano tryb Kid. Usługa i tray powinny być aktywne."
-                : "Skonfigurowano tryb Admin.",
+                ? "Kid OK.\nHasło admina zapisane.\nUsługa + tray + agent uruchomione.\nOverride w trayu = to hasło."
+                : "Admin OK — działa w trayu.",
             AppConstants.AppName,
             MessageBoxButton.OK,
             MessageBoxImage.Information);
         Close();
     }
 
-    private void TryRegisterService()
+    private bool TryRegisterService(out string error)
     {
+        error = string.Empty;
         try
         {
-            var baseDir = AppContext.BaseDirectory;
-            var serviceExe = Path.Combine(baseDir, "KidPcControl.Service.exe");
-            if (!File.Exists(serviceExe))
+            if (!IsRunningAsAdmin())
             {
-                // During dev, look in sibling publish folders
-                var candidate = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "..", "KidPcControl.Service", "bin", "Debug", "net8.0", "KidPcControl.Service.exe"));
-                if (File.Exists(candidate))
-                    serviceExe = candidate;
+                error = "Brak uprawnień Administratora — potwierdź UAC.";
+                return false;
             }
 
+            var serviceExe = Path.Combine(AppContext.BaseDirectory, "KidPcControl.Service.exe");
             if (!File.Exists(serviceExe))
             {
-                ErrorText.Text = "Nie znaleziono KidPcControl.Service.exe — zapisono politykę; zarejestruj usługę ręcznie.";
-                return;
+                error = "Brak KidPcControl.Service.exe w katalogu instalacji.";
+                return false;
             }
 
-            RunSc($"stop {AppConstants.ServiceName}");
-            RunSc($"delete {AppConstants.ServiceName}");
-            RunSc($"create {AppConstants.ServiceName} binPath= \"{serviceExe}\" start= auto DisplayName= \"Kid PC Control Service\"");
-            RunSc($"description {AppConstants.ServiceName} \"Parental control monitoring for Kid PC Control\"");
-            RunSc($"start {AppConstants.ServiceName}");
+            RunSc($"stop \"{AppConstants.ServiceName}\"");
+            RunSc($"delete \"{AppConstants.ServiceName}\"");
+            RunSc($"create \"{AppConstants.ServiceName}\" binPath= \"{serviceExe}\" start= auto DisplayName= \"Kid PC Control Service\"");
+            RunSc($"description \"{AppConstants.ServiceName}\" \"Kid PC Control parental service\"");
+            var startCode = RunSc($"start \"{AppConstants.ServiceName}\"");
+            OpenFirewall();
+
+            if (startCode != 0)
+            {
+                // 1056 = already running
+                if (startCode != 1056)
+                {
+                    error = $"sc start zakończył się kodem {startCode}. Sprawdź services.msc → KidPcControlService.";
+                    return false;
+                }
+            }
+
+            return true;
         }
         catch (Exception ex)
         {
-            ErrorText.Text = $"Usługa: {ex.Message} (uruchom Setup jako Administrator).";
+            error = $"Usługa: {ex.Message}";
+            return false;
         }
     }
 
-    private static void RunSc(string args)
+    private static void OpenFirewall()
     {
-        var psi = new ProcessStartInfo
+        try
+        {
+            RunNetsh($"http delete urlacl url=http://+:{AppConstants.ControlPort}/");
+            RunNetsh($"http add urlacl url=http://+:{AppConstants.ControlPort}/ user=Everyone");
+            RunNetsh($"advfirewall firewall delete rule name=\"KidPcControl Control\"");
+            RunNetsh($"advfirewall firewall add rule name=\"KidPcControl Control\" dir=in action=allow protocol=TCP localport={AppConstants.ControlPort}");
+        }
+        catch { /* ignore */ }
+    }
+
+    private static void RunNetsh(string args)
+    {
+        using var p = Process.Start(new ProcessStartInfo
+        {
+            FileName = "netsh",
+            Arguments = args,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
+        p?.WaitForExit(10000);
+    }
+
+    private static int RunSc(string args)
+    {
+        using var p = Process.Start(new ProcessStartInfo
         {
             FileName = "sc.exe",
             Arguments = args,
@@ -121,9 +215,10 @@ public partial class MainWindow : Window
             CreateNoWindow = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true
-        };
-        using var p = Process.Start(psi);
-        p?.WaitForExit(15000);
+        });
+        if (p is null) return -1;
+        p.WaitForExit(20000);
+        return p.ExitCode;
     }
 
     private static void TryStartProcess(string exeName)
@@ -131,13 +226,37 @@ public partial class MainWindow : Window
         try
         {
             var path = Path.Combine(AppContext.BaseDirectory, exeName);
-            if (!File.Exists(path))
-                return;
+            if (!File.Exists(path)) return;
             Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+        }
+        catch { /* ignore */ }
+    }
+
+    private static bool IsRunningAsAdmin()
+    {
+        using var identity = WindowsIdentity.GetCurrent();
+        return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
+    }
+
+    private static bool TryRelaunchElevated()
+    {
+        try
+        {
+            var exe = Environment.ProcessPath;
+            if (string.IsNullOrWhiteSpace(exe)) return false;
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = exe,
+                UseShellExecute = true,
+                Verb = "runas",
+                WorkingDirectory = AppContext.BaseDirectory
+            });
+            Application.Current.Shutdown();
+            return true;
         }
         catch
         {
-            // ignore
+            return false;
         }
     }
 }

@@ -9,6 +9,7 @@ public static class AppConstants
     public const string GitHubRepo = "kid-pc-control";
     public const int DiscoveryPort = 47891;
     public const int ControlPort = 47892;
+    public const int UrlProxyPort = 47893;
     public const string DiscoveryMagic = "KIDPCCTRL1";
     public static readonly TimeSpan UpdateCheckInterval = TimeSpan.FromHours(6);
 
@@ -17,4 +18,7 @@ public static class AppConstants
 
     public static string PolicyPath => Path.Combine(ProgramDataDir, "policy.json");
     public static string UpdateCachePath => Path.Combine(ProgramDataDir, "update-cache.json");
+    public static string ScreenPath => Path.Combine(ProgramDataDir, "screen.jpg");
+    public static string BlockBannerPath => Path.Combine(ProgramDataDir, "url-block.txt");
+    public static string AnnotationPath => Path.Combine(ProgramDataDir, "annotation.json");
 }

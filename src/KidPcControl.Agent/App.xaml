@@ -3,9 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="LockWindow.xaml">
   <Application.Resources>
-    <SolidColorBrush x:Key="BgBrush" Color="#E6101010"/>
-    <SolidColorBrush x:Key="TextBrush" Color="#FFF3F3F3"/>
-    <SolidColorBrush x:Key="MutedBrush" Color="#FFB3B3B3"/>
-    <SolidColorBrush x:Key="AccentBrush" Color="#FF60CDFF"/>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Themes/DarkWin11.xaml"/>
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
   </Application.Resources>
 </Application>

@@ -4,17 +4,23 @@
         Title="Kid PC Control"
         Height="280" Width="420"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="NoResize">
-  <Grid Margin="20">
+        ResizeMode="NoResize"
+        Background="#FF0F1216"
+        Foreground="#FFEEF2F7">
+  <Border Background="#FF0F1216" Padding="20" TextElement.Foreground="#FFEEF2F7">
     <StackPanel>
-      <TextBlock Text="Kid PC Control" FontSize="22" FontWeight="SemiBold"/>
-      <TextBlock x:Name="DeviceNameText" Margin="0,8,0,0" FontSize="16"/>
-      <TextBlock x:Name="StatusText" Margin="0,12,0,0" TextWrapping="Wrap"/>
-      <TextBlock x:Name="UsageText" Margin="0,8,0,0" Foreground="{StaticResource MutedBrush}"/>
+      <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+        <Image Source="pack://application:,,,/Assets/tray.png" Width="40" Height="40" Margin="0,0,12,0"
+               RenderOptions.BitmapScalingMode="HighQuality"/>
+        <TextBlock Text="Kid PC Control" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#FFEEF2F7"/>
+      </StackPanel>
+      <TextBlock x:Name="DeviceNameText" Margin="0,8,0,0" FontSize="16" Foreground="#FFEEF2F7"/>
+      <TextBlock x:Name="StatusText" Margin="0,12,0,0" TextWrapping="Wrap" Foreground="#FFEEF2F7"/>
+      <TextBlock x:Name="UsageText" Margin="0,8,0,0" Foreground="#FFB0BAC8"/>
       <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
         <Button Style="{StaticResource PrimaryButton}" Content="Override…" Click="Override_Click" Margin="0,0,8,0"/>
         <Button Style="{StaticResource GhostButton}" Content="Odśwież" Click="Reload_Click"/>
       </StackPanel>
     </StackPanel>
-  </Grid>
+  </Border>
 </Window>

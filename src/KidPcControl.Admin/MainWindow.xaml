@@ -2,67 +2,63 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Kid PC Control — Admin"
-        Height="720" Width="1100"
-        MinHeight="560" MinWidth="900"
-        WindowStartupLocation="CenterScreen">
-  <Grid Margin="20">
+        Height="820" Width="1280"
+        MinHeight="640" MinWidth="1080"
+        WindowStartupLocation="CenterScreen"
+        Background="#FF0F1216"
+        Foreground="#FFEEF2F7">
+  <Border Background="#FF0F1216" TextElement.Foreground="#FFEEF2F7">
+  <Grid Margin="16">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
       <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
 
-    <Grid Grid.Row="0" Margin="0,0,0,16">
+    <Grid Grid.Row="0" Margin="0,0,0,14">
       <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto"/>
         <ColumnDefinition Width="*"/>
         <ColumnDefinition Width="Auto"/>
       </Grid.ColumnDefinitions>
-      <StackPanel>
-        <TextBlock Text="Kid PC Control" FontSize="28" FontWeight="SemiBold"/>
-        <TextBlock Text="Panel rodzica — urządzenia w sieci lokalnej"
-                   Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+      <Image Source="pack://application:,,,/Assets/app.png" Width="40" Height="40" Margin="0,0,12,0"
+             RenderOptions.BitmapScalingMode="HighQuality"/>
+      <StackPanel Grid.Column="1" VerticalAlignment="Center">
+        <TextBlock Text="Kid PC Control" FontSize="20" FontWeight="SemiBold"
+                   FontFamily="{StaticResource DisplayFont}" Foreground="{StaticResource TextBrush}"/>
+        <TextBlock x:Name="HeaderStatus" Text="Panel rodzica — Kids w sieci lokalnej"
+                   Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="0,2,0,0"/>
       </StackPanel>
-      <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+      <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
         <TextBlock x:Name="UpdateStatusText" VerticalAlignment="Center" Margin="0,0,12,0"
-                   Foreground="{StaticResource MutedBrush}" Text="Aktualizacje: …"/>
-        <Button Style="{StaticResource GhostButton}" Content="Odśwież" Click="Refresh_Click"/>
+                   Foreground="{StaticResource MutedBrush}" FontSize="12" Text="…"/>
+        <Button Style="{StaticResource GhostButton}" Content="Odśwież listę" Click="Refresh_Click"/>
       </StackPanel>
     </Grid>
 
     <Grid Grid.Row="1">
       <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="280"/>
+        <ColumnDefinition Width="12"/>
+        <ColumnDefinition Width="*" MinWidth="520"/>
+        <ColumnDefinition Width="12"/>
         <ColumnDefinition Width="340"/>
-        <ColumnDefinition Width="16"/>
-        <ColumnDefinition Width="*"/>
       </Grid.ColumnDefinitions>
 
       <Border Grid.Column="0" Style="{StaticResource CardBorder}">
         <DockPanel>
-          <TextBlock DockPanel.Dock="Top" Text="Urządzenia dzieci" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12"/>
+          <TextBlock DockPanel.Dock="Top" Text="URZĄDZENIA" Style="{StaticResource SectionLabel}"/>
           <ListBox x:Name="KidsList" SelectionChanged="KidsList_OnSelectionChanged">
             <ListBox.ItemTemplate>
               <DataTemplate>
                 <StackPanel>
-                  <TextBlock Text="{Binding DeviceName}" FontWeight="SemiBold"/>
-                  <TextBlock Foreground="{StaticResource MutedBrush}" FontSize="12">
-                    <Run Text="{Binding IpAddress}"/>
-                    <Run Text=" · "/>
-                    <Run Text="{Binding Version}"/>
-                  </TextBlock>
-                  <TextBlock FontSize="12" Margin="0,4,0,0">
-                    <TextBlock.Style>
-                      <Style TargetType="TextBlock">
-                        <Setter Property="Text" Value="Online"/>
-                        <Setter Property="Foreground" Value="{StaticResource OkBrush}"/>
-                        <Style.Triggers>
-                          <DataTrigger Binding="{Binding DeviceBlocked}" Value="True">
-                            <Setter Property="Text" Value="Zablokowane"/>
-                            <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
-                          </DataTrigger>
-                        </Style.Triggers>
-                      </Style>
-                    </TextBlock.Style>
-                  </TextBlock>
+                  <TextBlock Text="{Binding DeviceName}" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"/>
+                  <TextBlock Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="0,2,0,0"
+                             Text="{Binding IpAddress}"/>
+                  <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                    <Ellipse Width="6" Height="6" Fill="{StaticResource OkBrush}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Online" Foreground="{StaticResource OkBrush}" FontSize="12"/>
+                  </StackPanel>
                 </StackPanel>
               </DataTemplate>
             </ListBox.ItemTemplate>
@@ -70,55 +66,209 @@
         </DockPanel>
       </Border>
 
-      <Border Grid.Column="2" Style="{StaticResource CardBorder}">
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
-          <StackPanel x:Name="DetailPanel">
-            <TextBlock x:Name="SelectedTitle" Text="Wybierz urządzenie" FontSize="20" FontWeight="SemiBold"/>
-            <TextBlock x:Name="SelectedMeta" Foreground="{StaticResource MutedBrush}" Margin="0,6,0,20"
-                       Text="Po uruchomieniu trybu Kid w tej samej sieci pojawi się tutaj."/>
+      <Border Grid.Column="2" Style="{StaticResource CardBorder}" Padding="12">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Margin="4,0,4,8">
+            <TextBlock x:Name="SelectedTitle" Text="Wybierz urządzenie" FontSize="18" FontWeight="SemiBold"
+                       FontFamily="{StaticResource DisplayFont}" Foreground="{StaticResource TextBrush}"/>
+            <TextBlock x:Name="SelectedMeta" Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="0,4,0,0"
+                       Text="Po uruchomieniu Kid w LAN pojawi się na liście."/>
+          </StackPanel>
 
-            <TextBlock Text="Godziny dostępu" FontWeight="SemiBold" Margin="0,0,0,8"/>
-            <Grid Margin="0,0,0,16">
+          <Border DockPanel.Dock="Bottom" Background="{StaticResource SurfaceAltBrush}" CornerRadius="8" Padding="12" Margin="4,10,4,4">
+            <Grid>
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="12"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
               </Grid.ColumnDefinitions>
-              <StackPanel Grid.Column="0">
-                <TextBlock Text="Od" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,4"/>
-                <TextBox x:Name="StartHourBox" Text="07:00"/>
-              </StackPanel>
-              <StackPanel Grid.Column="2">
-                <TextBlock Text="Do" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,4"/>
-                <TextBox x:Name="EndHourBox" Text="21:00"/>
+              <TextBlock x:Name="ActionResult" VerticalAlignment="Center" TextWrapping="Wrap"
+                         Foreground="{StaticResource AccentBrush}" FontSize="12"/>
+              <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Style="{StaticResource DangerButton}" Content="Zablokuj" Click="BlockNow_Click" Margin="0,0,8,0"/>
+                <Button Style="{StaticResource GhostButton}" Content="Odblokuj" Click="Unblock_Click" Margin="0,0,8,0"/>
+                <Button Style="{StaticResource PrimaryButton}" Content="Wyślij politykę" Click="SavePolicy_Click"/>
               </StackPanel>
             </Grid>
+          </Border>
 
-            <TextBlock Text="Max. ciągły czas (minuty)" FontWeight="SemiBold" Margin="0,0,0,8"/>
-            <TextBox x:Name="MaxUseBox" Text="120" Margin="0,0,0,16"/>
+          <TabControl Margin="4,0">
+            <TabItem Header="Czas">
+              <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,8,4,0">
+                <StackPanel>
+                  <TextBlock Text="PRZEDZIAŁY WŁĄCZENIA KOMPUTERA" Style="{StaticResource SectionLabel}"/>
+                  <TextBlock Text="Dzień + od–do. Edycja nie znika przy odświeżaniu listy — zapisz „Wyślij politykę”."
+                             Foreground="#FFB0BAC8" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                  <ItemsControl x:Name="HoursList">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Border Background="{StaticResource SurfaceAltBrush}" CornerRadius="8" Padding="10" Margin="0,0,0,8"
+                                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                          <Grid>
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="150"/>
+                              <ColumnDefinition Width="8"/>
+                              <ColumnDefinition Width="90"/>
+                              <ColumnDefinition Width="8"/>
+                              <ColumnDefinition Width="90"/>
+                              <ColumnDefinition Width="*"/>
+                              <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox ItemsSource="{Binding DayOptions}"
+                                      SelectedValue="{Binding DayKey, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Key"
+                                      DisplayMemberPath="Label"/>
+                            <TextBox Grid.Column="2" Text="{Binding Start, UpdateSourceTrigger=PropertyChanged}"
+                                     Foreground="#FFEEF2F7" Background="#FF0A0D11" CaretBrush="#FFEEF2F7"/>
+                            <TextBox Grid.Column="4" Text="{Binding End, UpdateSourceTrigger=PropertyChanged}"
+                                     Foreground="#FFEEF2F7" Background="#FF0A0D11" CaretBrush="#FFEEF2F7"/>
+                            <Button Grid.Column="6" Style="{StaticResource GhostButton}" Content="Usuń"
+                                    Click="RemoveHour_Click" Tag="{Binding}" Padding="10,6"/>
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <Button Style="{StaticResource GhostButton}" Content="+ Dodaj przedział" HorizontalAlignment="Left"
+                          Click="AddHour_Click" Margin="0,0,0,16"/>
 
-            <TextBlock Text="Blokada URL (regex, jeden w linii)" FontWeight="SemiBold" Margin="0,0,0,8"/>
-            <TextBox x:Name="UrlRegexBox" AcceptsReturn="True" Height="90" TextWrapping="Wrap"
-                     VerticalScrollBarVisibility="Auto" Margin="0,0,0,8"/>
-            <TextBox x:Name="UrlMessageBox" Text="Ta strona jest zablokowana przez rodzica." Margin="0,0,0,16"/>
+                  <TextBlock Text="MAX. CIĄGŁY CZAS (MIN)" Style="{StaticResource SectionLabel}"/>
+                  <TextBox x:Name="MaxUseBox" Text="120" Width="120" HorizontalAlignment="Left"/>
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
 
-            <TextBlock Text="Komunikat blokady urządzenia" FontWeight="SemiBold" Margin="0,0,0,8"/>
-            <TextBox x:Name="LockMessageBox" Text="Czas na przerwę. Poproś rodzica o odblokowanie." Margin="0,0,0,20"/>
+            <TabItem Header="Aplikacje">
+              <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,8,4,0">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="280"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="200"/>
+                  </Grid.ColumnDefinitions>
 
-            <StackPanel Orientation="Horizontal">
-              <Button Style="{StaticResource PrimaryButton}" Content="Zapisz politykę lokalnie" Click="SavePolicy_Click" Margin="0,0,8,0"/>
-              <Button Style="{StaticResource GhostButton}" Content="Zablokuj teraz" Click="BlockNow_Click" Margin="0,0,8,0"/>
-              <Button Style="{StaticResource GhostButton}" Content="Odblokuj" Click="Unblock_Click"/>
-            </StackPanel>
+                  <StackPanel Grid.Column="0">
+                    <TextBlock Text="WHITELISTA (PUSTE = WSZYSTKIE)" Style="{StaticResource SectionLabel}"/>
+                    <TextBox x:Name="AllowedAppsBox" AcceptsReturn="True" Height="64" TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto" Margin="0,0,0,8"/>
 
-            <TextBlock Margin="0,16,0,0" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"
-                       Text="Uwaga: pełny push polityki przez sieć (gRPC) i podgląd ekranu będą w kolejnych iteracjach. Teraz działa discovery LAN + edycja lokalnego szablonu polityki."/>
-          </StackPanel>
-        </ScrollViewer>
+                    <TextBlock Text="REGUŁY CZASOWE APLIKACJI" Style="{StaticResource SectionLabel}"/>
+                    <TextBlock Text="Blokuj w godzinach = zabronione w oknie. Tylko w godzinach = poza oknem zabronione."
+                               Foreground="#FFB0BAC8" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                    <ItemsControl x:Name="AppRulesList">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Border Background="{StaticResource SurfaceAltBrush}" CornerRadius="8" Padding="10" Margin="0,0,0,8"
+                                  BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                            <Grid>
+                              <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                              </Grid.RowDefinitions>
+                              <Grid>
+                                <Grid.ColumnDefinitions>
+                                  <ColumnDefinition Width="*"/>
+                                  <ColumnDefinition Width="8"/>
+                                  <ColumnDefinition Width="170"/>
+                                  <ColumnDefinition Width="8"/>
+                                  <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding ProcessName, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="Nazwa procesu, np. chrome"
+                                         Foreground="#FFEEF2F7" Background="#FF0A0D11" CaretBrush="#FFEEF2F7"/>
+                                <ComboBox Grid.Column="2"
+                                          ItemsSource="{Binding ModeOptions}"
+                                          SelectedValue="{Binding ModeId, UpdateSourceTrigger=PropertyChanged}"
+                                          SelectedValuePath="Id"
+                                          DisplayMemberPath="Label"/>
+                                <Button Grid.Column="4" Style="{StaticResource GhostButton}" Content="Usuń"
+                                        Click="RemoveAppRule_Click" Tag="{Binding}" Padding="10,6"/>
+                              </Grid>
+                              <Grid Grid.Row="2">
+                                <Grid.ColumnDefinitions>
+                                  <ColumnDefinition Width="150"/>
+                                  <ColumnDefinition Width="8"/>
+                                  <ColumnDefinition Width="90"/>
+                                  <ColumnDefinition Width="8"/>
+                                  <ColumnDefinition Width="90"/>
+                                </Grid.ColumnDefinitions>
+                                <ComboBox ItemsSource="{Binding DayOptions}"
+                                          SelectedValue="{Binding DayKey, UpdateSourceTrigger=PropertyChanged}"
+                                          SelectedValuePath="Key"
+                                          DisplayMemberPath="Label"/>
+                                <TextBox Grid.Column="2" Text="{Binding Start, UpdateSourceTrigger=PropertyChanged}"
+                                         Foreground="#FFEEF2F7" Background="#FF0A0D11" CaretBrush="#FFEEF2F7"/>
+                                <TextBox Grid.Column="4" Text="{Binding End, UpdateSourceTrigger=PropertyChanged}"
+                                         Foreground="#FFEEF2F7" Background="#FF0A0D11" CaretBrush="#FFEEF2F7"/>
+                              </Grid>
+                            </Grid>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Style="{StaticResource GhostButton}" Content="+ Dodaj regułę ręcznie" HorizontalAlignment="Left"
+                            Click="AddAppRule_Click" Margin="0,0,0,8"/>
+                  </StackPanel>
+
+                  <Border Grid.Column="2" Background="{StaticResource SurfaceAltBrush}" CornerRadius="8" Padding="10"
+                          BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                    <DockPanel>
+                      <TextBlock DockPanel.Dock="Top" Text="PROCESY NA KID" Style="{StaticResource SectionLabel}"/>
+                      <Button DockPanel.Dock="Top" Style="{StaticResource GhostButton}" Content="Pobierz listę"
+                              Click="LoadApps_Click" Margin="0,0,0,8" HorizontalAlignment="Stretch"/>
+                      <Button DockPanel.Dock="Bottom" Style="{StaticResource PrimaryButton}" Content="+ Blokuj wybrany"
+                              Click="AddBlockedFromHint_Click" Margin="0,8,0,0" HorizontalAlignment="Stretch"/>
+                      <ListBox x:Name="ProcessHintsList" Background="Transparent"/>
+                    </DockPanel>
+                  </Border>
+                </Grid>
+              </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="Internet">
+              <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,8,0,0">
+                <StackPanel>
+                  <TextBlock Text="BLOKADA URL (REGEX, JEDEN W LINII)" Style="{StaticResource SectionLabel}"/>
+                  <TextBox x:Name="UrlRegexBox" AcceptsReturn="True" Height="120" TextWrapping="Wrap"
+                           VerticalScrollBarVisibility="Auto" Margin="0,0,0,12"/>
+                  <TextBlock Text="KOMUNIKAT BLOKADY STRONY" Style="{StaticResource SectionLabel}"/>
+                  <TextBox x:Name="UrlMessageBox" Text="Ta strona jest zablokowana przez rodzica."/>
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="Komunikaty">
+              <StackPanel Margin="0,8,0,0">
+                <TextBlock Text="KOMUNIKAT BLOKADY URZĄDZENIA" Style="{StaticResource SectionLabel}"/>
+                <TextBox x:Name="LockMessageBox" AcceptsReturn="True" Height="100" TextWrapping="Wrap"
+                         Text="Czas na przerwę. Poproś rodzica o odblokowanie."/>
+              </StackPanel>
+            </TabItem>
+          </TabControl>
+        </DockPanel>
+      </Border>
+
+      <Border Grid.Column="4" Style="{StaticResource CardBorder}">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Text="PODGLĄD EKRANU" Style="{StaticResource SectionLabel}"/>
+          <TextBlock DockPanel.Dock="Top" Text="Kliknij obraz → zoom / pan / zaznacz i wyślij na Kid"
+                     Foreground="#FFB0BAC8" FontSize="11" Margin="0,0,0,8" TextWrapping="Wrap"/>
+          <Button DockPanel.Dock="Top" Style="{StaticResource GhostButton}" Content="Odśwież podgląd"
+                  HorizontalAlignment="Left" Click="RefreshScreen_Click" Margin="0,0,0,10"/>
+          <TextBlock DockPanel.Dock="Bottom" Text="OSTATNIE URL" Style="{StaticResource SectionLabel}" Margin="0,12,0,6"/>
+          <ListBox DockPanel.Dock="Bottom" x:Name="UrlList" Height="150"
+                   Foreground="{StaticResource TextBrush}"/>
+          <Border Background="{StaticResource InputBgBrush}" CornerRadius="8" ClipToBounds="True"
+                  Cursor="Hand" MouseLeftButtonUp="ScreenPreview_OnMouseLeftButtonUp">
+            <Image x:Name="ScreenPreview" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"
+                   IsHitTestVisible="False"/>
+          </Border>
+        </DockPanel>
       </Border>
     </Grid>
 
-    <TextBlock Grid.Row="2" Margin="0,12,0,0" Foreground="{StaticResource MutedBrush}"
-               Text="Kid PC Control · Windows 11 · sieć lokalna"/>
+    <TextBlock Grid.Row="2" Margin="0,12,0,0" Foreground="#FFB0BAC8" FontSize="12"
+               Text="Edycja polityki stabilna · kliknij podgląd aby adnotować ekran Kida"/>
   </Grid>
+  </Border>
 </Window>

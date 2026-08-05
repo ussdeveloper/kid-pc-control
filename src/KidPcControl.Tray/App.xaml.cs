@@ -1,4 +1,5 @@
 ﻿using System.Drawing;
+using System.IO;
 using System.Windows;
 using System.Windows.Forms;
 using Application = System.Windows.Application;
@@ -9,20 +10,37 @@ public partial class App : Application
 {
     private NotifyIcon? _tray;
     private StatusWindow? _statusWindow;
+    private Icon? _customIcon;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
+        _customIcon = LoadTrayIcon();
         _statusWindow = new StatusWindow();
         _tray = new NotifyIcon
         {
             Visible = true,
             Text = "Kid PC Control",
-            Icon = SystemIcons.Shield,
+            Icon = _customIcon ?? SystemIcons.Shield,
             ContextMenuStrip = BuildMenu()
         };
         _tray.DoubleClick += (_, _) => ShowStatus();
+    }
+
+    private static Icon? LoadTrayIcon()
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "Assets", "tray.ico");
+            if (!File.Exists(path))
+                path = Path.Combine(AppContext.BaseDirectory, "tray.ico");
+            return File.Exists(path) ? new Icon(path) : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private ContextMenuStrip BuildMenu()
@@ -61,6 +79,7 @@ public partial class App : Application
             _tray.Visible = false;
             _tray.Dispose();
         }
+        _customIcon?.Dispose();
         base.OnExit(e);
     }
 }

@@ -19,7 +19,7 @@ public sealed class UpdateHostedService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        try { await Task.Delay(TimeSpan.FromSeconds(45), stoppingToken); }
+        try { await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken); }
         catch (OperationCanceledException) { return; }
 
         while (!stoppingToken.IsCancellationRequested)
@@ -30,6 +30,16 @@ public sealed class UpdateHostedService : BackgroundService
                 _logger.LogInformation(
                     "Update check: available={Available} latest={Latest} ({Message})",
                     result.UpdateAvailable, result.LatestVersion, result.Message);
+
+                if (result.UpdateAvailable && !string.IsNullOrWhiteSpace(result.DownloadUrl) && !UpdateApplier.IsInProgress)
+                {
+                    _logger.LogInformation("Applying update to v{Version}…", result.LatestVersion);
+                    var apply = await UpdateApplier.DownloadAndApplyAsync(result, ct: stoppingToken);
+                    _logger.LogInformation("Update apply: started={Started} {Message}", apply.Started, apply.Message);
+                    // After silent setup, process/service may be restarted — wait longer either way
+                    await Task.Delay(TimeSpan.FromHours(6), stoppingToken);
+                    continue;
+                }
 
                 var delay = result.RateLimited ? TimeSpan.FromHours(12) : AppConstants.UpdateCheckInterval;
                 await Task.Delay(delay, stoppingToken);

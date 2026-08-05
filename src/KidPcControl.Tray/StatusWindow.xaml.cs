@@ -2,6 +2,7 @@ using System.IO;
 using System.Text.Json;
 using System.Windows;
 using KidPcControl.Shared;
+using KidPcControl.Shared.Storage;
 
 namespace KidPcControl.Tray;
 
@@ -15,36 +16,39 @@ public partial class StatusWindow : Window
 
     public void Reload()
     {
-        var statusPath = Path.Combine(AppConstants.ProgramDataDir, "status.json");
-        if (!File.Exists(statusPath))
+        var status = StatusStore.Load();
+        if (status is null)
         {
-            DeviceNameText.Text = "Brak statusu serwisu";
-            StatusText.Text = "Uruchom usługę KidPcControlService lub zainstaluj tryb Kid.";
-            UsageText.Text = string.Empty;
+            // fallback legacy PascalCase file
+            var statusPath = Path.Combine(AppConstants.ProgramDataDir, "status.json");
+            if (!File.Exists(statusPath))
+            {
+                DeviceNameText.Text = "Brak statusu serwisu";
+                StatusText.Text = "Uruchom usługę KidPcControlService lub zainstaluj tryb Kid.";
+                UsageText.Text = string.Empty;
+                return;
+            }
+        }
+
+        if (status is not null)
+        {
+            DeviceNameText.Text = status.DeviceName;
+            StatusText.Text = status.Locked ? status.LockReason : "Dostęp dozwolony";
+            StatusText.Foreground = status.Locked
+                ? (System.Windows.Media.Brush)FindResource("DangerBrush")
+                : (System.Windows.Media.Brush)FindResource("OkBrush");
+            UsageText.Text = $"Użycie sesji: {status.UsedMinutes:0} / {status.MaxContinuousMinutes} min"
+                             + (status.OverrideActive ? " · override aktywny" : "");
             return;
         }
 
         try
         {
-            using var doc = JsonDocument.Parse(File.ReadAllText(statusPath));
+            using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppConstants.ProgramDataDir, "status.json")));
             var root = doc.RootElement;
-            DeviceNameText.Text = root.GetProperty("DeviceName").GetString() ?? "Kid";
-            var allowed = root.GetProperty("Allowed").GetBoolean();
-            var blocked = root.GetProperty("DeviceBlocked").GetBoolean();
-            var overrideActive = root.GetProperty("OverrideActive").GetBoolean();
-            var used = root.GetProperty("UsedMinutes").GetDouble();
-            var max = root.GetProperty("MaxContinuousMinutes").GetInt32();
-
-            StatusText.Text = blocked ? "Urządzenie zablokowane"
-                : !allowed ? "Poza dozwolonymi godzinami"
-                : overrideActive ? "Override aktywny"
-                : "Dostęp dozwolony";
-
-            StatusText.Foreground = (blocked || !allowed)
-                ? (System.Windows.Media.Brush)FindResource("DangerBrush")
-                : (System.Windows.Media.Brush)FindResource("OkBrush");
-
-            UsageText.Text = $"Użycie sesji: {used:0} / {max} min";
+            DeviceNameText.Text = root.TryGetProperty("deviceName", out var n) ? n.GetString()
+                : root.GetProperty("DeviceName").GetString() ?? "Kid";
+            StatusText.Text = "Status odczytany";
         }
         catch (Exception ex)
         {

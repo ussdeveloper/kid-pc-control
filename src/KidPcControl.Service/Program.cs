@@ -10,6 +10,9 @@ builder.Services.AddWindowsService(options =>
 });
 
 builder.Services.AddSingleton<PolicyRuntime>();
+builder.Services.AddSingleton<SessionTracker>();
+builder.Services.AddHostedService<ControlHttpServer>();
+builder.Services.AddHostedService<UrlFilterProxy>();
 builder.Services.AddHostedService<KidMonitorWorker>();
 builder.Services.AddHostedService<UpdateHostedService>();
 

@@ -2,34 +2,36 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Override admina"
-        Height="420" Width="440"
+        Height="440" Width="460"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="NoResize">
-  <Grid Margin="20">
+        ResizeMode="NoResize"
+        Background="#FF0F1216"
+        Foreground="#FFEEF2F7">
+  <Border Background="#FF0F1216" Padding="20" TextElement.Foreground="#FFEEF2F7">
     <StackPanel>
-      <TextBlock Text="Override ograniczeń" FontSize="20" FontWeight="SemiBold"/>
+      <TextBlock Text="Override ograniczeń" FontSize="20" FontWeight="SemiBold" Foreground="#FFEEF2F7"/>
       <TextBlock Text="Wymagane hasło administratora ustawione przy instalacji."
-                 Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,6,0,16"/>
+                 Foreground="#FFB0BAC8" TextWrapping="Wrap" Margin="0,6,0,16"/>
 
-      <TextBlock Text="Hasło admina" Margin="0,0,0,4"/>
+      <TextBlock Text="Hasło admina" Margin="0,0,0,4" Foreground="#FFB0BAC8"/>
       <PasswordBox x:Name="PasswordBox" Margin="0,0,0,12"/>
 
-      <TextBlock Text="Akcja" Margin="0,0,0,4"/>
+      <TextBlock Text="Akcja" Margin="0,0,0,4" Foreground="#FFB0BAC8"/>
       <ComboBox x:Name="ActionBox" Margin="0,0,0,12" SelectedIndex="0">
         <ComboBoxItem Content="Wyłącz limity na czas"/>
         <ComboBoxItem Content="Dodaj czas (minuty)"/>
         <ComboBoxItem Content="Zmień limity do końca dnia"/>
       </ComboBox>
 
-      <TextBlock Text="Minuty (dla wyłączenia / dodania czasu)" Margin="0,0,0,4"/>
+      <TextBlock Text="Minuty (dla wyłączenia / dodania czasu)" Margin="0,0,0,4" Foreground="#FFB0BAC8"/>
       <TextBox x:Name="MinutesBox" Text="30" Margin="0,0,0,12"/>
 
-      <TextBlock x:Name="ErrorText" Foreground="{StaticResource DangerBrush}" Margin="0,0,0,12"/>
+      <TextBlock x:Name="ErrorText" Foreground="#FFFF6B81" Margin="0,0,0,12"/>
 
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
         <Button Style="{StaticResource GhostButton}" Content="Anuluj" Click="Cancel_Click" Margin="0,0,8,0"/>
         <Button Style="{StaticResource PrimaryButton}" Content="Zastosuj" Click="Apply_Click"/>
       </StackPanel>
     </StackPanel>
-  </Grid>
+  </Border>
 </Window>

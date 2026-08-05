@@ -5,20 +5,18 @@
         WindowState="Maximized"
         WindowStyle="None"
         Topmost="True"
-        Background="{StaticResource BgBrush}"
-        Foreground="{StaticResource TextBrush}"
-        FontFamily="Segoe UI Variable, Segoe UI">
-  <Grid>
+        Background="#FF0F1216"
+        Foreground="#FFEEF2F7">
+  <Border Background="#E6101010">
     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="640">
-      <TextBlock Text="Kid PC Control" FontSize="18" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+      <TextBlock Text="Kid PC Control" FontSize="18" Foreground="#FF00D4C8" HorizontalAlignment="Center"/>
       <TextBlock x:Name="MessageText" Text="Czas na przerwę."
                  FontSize="36" FontWeight="SemiBold" TextWrapping="Wrap"
-                 TextAlignment="Center" Margin="0,16,0,12"/>
+                 TextAlignment="Center" Margin="0,16,0,12" Foreground="#FFEEF2F7"/>
       <TextBlock Text="Poproś rodzica o hasło admina w ikonie tray, aby dodać czas lub wyłączyć limity."
-                 Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" TextAlignment="Center"/>
-      <Button Content="Odśwież status" Margin="0,28,0,0" Padding="16,10" HorizontalAlignment="Center"
-              Background="{StaticResource AccentBrush}" Foreground="#FF000000" BorderThickness="0"
-              Click="Refresh_Click"/>
+                 Foreground="#FFB0BAC8" TextWrapping="Wrap" TextAlignment="Center"/>
+      <Button Style="{StaticResource PrimaryButton}" Content="Odśwież status"
+              Margin="0,28,0,0" HorizontalAlignment="Center" Click="Refresh_Click"/>
     </StackPanel>
-  </Grid>
+  </Border>
 </Window>

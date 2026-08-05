@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Controls;
 using KidPcControl.Shared.Models;
 using KidPcControl.Shared.Security;
 using KidPcControl.Shared.Storage;
@@ -18,8 +17,21 @@ public partial class OverrideWindow : Window
     private void Apply_Click(object sender, RoutedEventArgs e)
     {
         ErrorText.Text = string.Empty;
-        var policy = PolicyStore.LoadOrCreate();
-        if (!PasswordHasher.Verify(PasswordBox.Password, policy.AdminPasswordHash))
+
+        if (!AdminCredentials.HasPassword())
+        {
+            ErrorText.Text = "Brak zapisanego hasła. Uruchom Setup → Kid i ustaw hasło ponownie.";
+            return;
+        }
+
+        var password = PasswordBox.Password ?? string.Empty;
+        if (string.IsNullOrEmpty(password))
+        {
+            ErrorText.Text = "Wpisz hasło admina.";
+            return;
+        }
+
+        if (!AdminCredentials.VerifyPassword(password))
         {
             ErrorText.Text = "Nieprawidłowe hasło.";
             return;
@@ -28,6 +40,7 @@ public partial class OverrideWindow : Window
         if (!int.TryParse(MinutesBox.Text.Trim(), out var minutes) || minutes < 1)
             minutes = 30;
 
+        var policy = PolicyStore.LoadOrCreate();
         var endOfDay = DateTime.Today.AddDays(1).AddTicks(-1);
         var untilTimed = DateTimeOffset.Now.AddMinutes(minutes);
         var action = ActionBox.SelectedIndex;
@@ -55,7 +68,6 @@ public partial class OverrideWindow : Window
             }
         };
 
-        // For "change until end of day", also allow adjusting hours quickly
         if (action == 2)
         {
             policy.AllowedHours =
@@ -64,6 +76,8 @@ public partial class OverrideWindow : Window
             ];
         }
 
+        // Never wipe password from policy either
+        policy.AdminPasswordHash = AdminCredentials.ReadHash();
         PolicyStore.Save(policy);
         DialogResult = true;
     }

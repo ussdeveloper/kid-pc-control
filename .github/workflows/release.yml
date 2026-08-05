@@ -21,31 +21,31 @@ jobs:
         id: ver
         shell: pwsh
         run: |
-          $tag = $env:GITHUB_REF_NAME
-          $ver = $tag.TrimStart('v')
+          $ver = $env:GITHUB_REF_NAME.TrimStart('v')
           echo "version=$ver" >> $env:GITHUB_OUTPUT
-      - name: Publish
-        run: |
-          $out = "artifacts/KidPcControl"
-          New-Item -ItemType Directory -Force -Path $out | Out-Null
-          dotnet publish src/KidPcControl.Admin/KidPcControl.Admin.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -o $out
-          dotnet publish src/KidPcControl.Service/KidPcControl.Service.csproj -c Release -r win-x64 --self-contained true -o $out
-          dotnet publish src/KidPcControl.Tray/KidPcControl.Tray.csproj -c Release -r win-x64 --self-contained true -o $out
-          dotnet publish src/KidPcControl.Agent/KidPcControl.Agent.csproj -c Release -r win-x64 --self-contained true -o $out
-          dotnet publish src/KidPcControl.Setup/KidPcControl.Setup.csproj -c Release -r win-x64 --self-contained true -o $out
+      - name: Install Inno Setup
         shell: pwsh
-      - name: Zip package
+        run: choco install innosetup -y --no-progress
+      - name: Build Setup.exe
         shell: pwsh
         run: |
           $ver = "${{ steps.ver.outputs.version }}"
-          Compress-Archive -Path artifacts/KidPcControl/* -DestinationPath "artifacts/KidPcControl-win-x64-v$ver.zip" -Force
-          Get-FileHash "artifacts/KidPcControl-win-x64-v$ver.zip" -Algorithm SHA256 |
-            ForEach-Object { "$($_.Hash)  KidPcControl-win-x64-v$ver.zip" } |
-            Set-Content "artifacts/SHA256SUMS.txt"
+          (Get-Content installer/KidPcControl.iss -Raw) -replace '#define MyAppVersion "[^"]+"', "#define MyAppVersion `"$ver`"" | Set-Content installer/KidPcControl.iss
+          if (Test-Path Directory.Build.props) {
+            (Get-Content Directory.Build.props -Raw) -replace '<Version>[^<]+</Version>', "<Version>$ver</Version>" | Set-Content Directory.Build.props
+          }
+          New-Item -ItemType Directory -Force -Path artifacts-setup | Out-Null
+          ./installer/build-installer.ps1
+          $setup = Get-ChildItem installer/output -Filter "KidPcControl-Setup-*.exe" | Select-Object -First 1
+          if (-not $setup) { throw "Setup exe missing" }
+          Copy-Item $setup.FullName "artifacts-setup/KidPcControl-Setup-v$ver.exe" -Force
+          Get-FileHash "artifacts-setup/KidPcControl-Setup-v$ver.exe" -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash)  KidPcControl-Setup-v$ver.exe" } |
+            Set-Content "artifacts-setup/SHA256SUMS.txt"
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/KidPcControl-win-x64-v${{ steps.ver.outputs.version }}.zip
-            artifacts/SHA256SUMS.txt
+            artifacts-setup/KidPcControl-Setup-v${{ steps.ver.outputs.version }}.exe
+            artifacts-setup/SHA256SUMS.txt
           generate_release_notes: true

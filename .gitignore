@@ -29,6 +29,7 @@ githu
 
 ## Installer output
 installer/output/
+installer/payload/
 *.exe
 !installer/*.iss
 

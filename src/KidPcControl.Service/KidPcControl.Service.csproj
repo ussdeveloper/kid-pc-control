@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-KidPcControl.Service-9dc5a910-1b35-4de7-83e8-cc077451a4ce</UserSecretsId>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,4 +17,10 @@
     <ProjectReference Include="..\KidPcControl.Shared\KidPcControl.Shared.csproj" />
     <ProjectReference Include="..\KidPcControl.Updater\KidPcControl.Updater.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="Assets\app.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>
+
