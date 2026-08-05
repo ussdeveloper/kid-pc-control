@@ -108,17 +108,31 @@ public sealed class DiscoveryPublisher : IAsyncDisposable
 
 public sealed class DiscoveryListener : IAsyncDisposable
 {
-    private readonly UdpClient _udp;
+    private readonly UdpClient? _udp;
     private readonly Dictionary<string, KidPresence> _devices = new();
     private readonly object _gate = new();
     private CancellationTokenSource? _cts;
     private Task? _loop;
+    public bool IsListening { get; }
 
     public event Action? DevicesChanged;
 
     public DiscoveryListener()
     {
-        _udp = new UdpClient(AppConstants.DiscoveryPort);
+        try
+        {
+            // ReuseAddress: second Admin instance / leftover process must not crash the app
+            var udp = new UdpClient();
+            udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            udp.Client.Bind(new IPEndPoint(IPAddress.Any, AppConstants.DiscoveryPort));
+            _udp = udp;
+            IsListening = true;
+        }
+        catch (SocketException)
+        {
+            _udp = null;
+            IsListening = false;
+        }
     }
 
     public IReadOnlyList<KidPresence> Snapshot()
@@ -135,12 +149,14 @@ public sealed class DiscoveryListener : IAsyncDisposable
 
     public void Start()
     {
+        if (_udp is null) return;
         _cts = new CancellationTokenSource();
         _loop = Task.Run(() => LoopAsync(_cts.Token));
     }
 
     private async Task LoopAsync(CancellationToken ct)
     {
+        if (_udp is null) return;
         while (!ct.IsCancellationRequested)
         {
             try
@@ -183,6 +199,6 @@ public sealed class DiscoveryListener : IAsyncDisposable
             }
             _cts.Dispose();
         }
-        _udp.Dispose();
+        _udp?.Dispose();
     }
 }

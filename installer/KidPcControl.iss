@@ -2,7 +2,7 @@
 ; Build with Inno Setup Compiler after publishing to installer\payload
 
 #define MyAppName "Kid PC Control"
-#define MyAppVersion "0.2.8"
+#define MyAppVersion "0.2.9"
 #define MyAppPublisher "ussdeveloper"
 #define MyAppURL "https://github.com/ussdeveloper/kid-pc-control"
 
@@ -25,9 +25,9 @@ ArchitecturesInstallIn64BitMode=x64compatible
 SetupIconFile=icons\setup.ico
 UninstallDisplayIcon={app}\KidPcControl.Setup.exe
 PrivilegesRequiredOverridesAllowed=dialog
-CloseApplications=force
+CloseApplications=yes
 RestartApplications=yes
-AppMutex=KidPcControlSetupMutex
+; AppMutex removed — stuck silent Setup was blocking reinstalls
 
 [Languages]
 Name: "polish"; MessagesFile: "compiler:Languages\Polish.isl"

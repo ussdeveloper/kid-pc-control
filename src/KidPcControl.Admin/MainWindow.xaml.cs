@@ -46,6 +46,8 @@ public partial class MainWindow : Window
         _hours.Add(new HourSlotVm());
         _listener.DevicesChanged += () => Dispatcher.Invoke(RefreshList);
         _listener.Start();
+        if (!_listener.IsListening)
+            HeaderStatus.Text = "Discovery: port zajęty — zamknij drugą kopię Admina (tray).";
         _refreshTimer.Tick += (_, _) => RefreshList();
         _screenTimer.Tick += async (_, _) => await RefreshScreenAsync();
         _refreshTimer.Start();
