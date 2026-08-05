@@ -11,6 +11,12 @@ public partial class StatusWindow : Window
     public StatusWindow()
     {
         InitializeComponent();
+        Closing += (_, e) =>
+        {
+            // Tray owns this window — X hides it so it can be shown again
+            e.Cancel = true;
+            Hide();
+        };
         Reload();
     }
 
@@ -19,7 +25,6 @@ public partial class StatusWindow : Window
         var status = StatusStore.Load();
         if (status is null)
         {
-            // fallback legacy PascalCase file
             var statusPath = Path.Combine(AppConstants.ProgramDataDir, "status.json");
             if (!File.Exists(statusPath))
             {

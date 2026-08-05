@@ -17,7 +17,7 @@ public partial class App : Application
         base.OnStartup(e);
 
         _customIcon = LoadTrayIcon();
-        _statusWindow = new StatusWindow();
+        _statusWindow = CreateStatusWindow();
         _tray = new NotifyIcon
         {
             Visible = true,
@@ -26,6 +26,17 @@ public partial class App : Application
             ContextMenuStrip = BuildMenu()
         };
         _tray.DoubleClick += (_, _) => ShowStatus();
+    }
+
+    private StatusWindow CreateStatusWindow()
+    {
+        var win = new StatusWindow();
+        win.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_statusWindow, win))
+                _statusWindow = null;
+        };
+        return win;
     }
 
     private static Icon? LoadTrayIcon()
@@ -59,8 +70,10 @@ public partial class App : Application
 
     private void ShowStatus()
     {
-        _statusWindow ??= new StatusWindow();
-        _statusWindow.Show();
+        _statusWindow ??= CreateStatusWindow();
+        if (!_statusWindow.IsVisible)
+            _statusWindow.Show();
+        _statusWindow.WindowState = WindowState.Normal;
         _statusWindow.Activate();
         _statusWindow.Reload();
     }
