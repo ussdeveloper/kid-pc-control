@@ -1,7 +1,9 @@
-﻿using System.Drawing;
+﻿using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Windows;
 using System.Windows.Forms;
+using KidPcControl.Shared;
 using Application = System.Windows.Application;
 
 namespace KidPcControl.Tray;
@@ -11,10 +13,15 @@ public partial class App : Application
     private NotifyIcon? _tray;
     private StatusWindow? _statusWindow;
     private Icon? _customIcon;
+    private System.Windows.Threading.DispatcherTimer? _keepAlive;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+        EnsureAutostart();
+        EnsureAgentRunning();
 
         _customIcon = LoadTrayIcon();
         _statusWindow = CreateStatusWindow();
@@ -26,6 +33,44 @@ public partial class App : Application
             ContextMenuStrip = BuildMenu()
         };
         _tray.DoubleClick += (_, _) => ShowStatus();
+
+        _keepAlive = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
+        _keepAlive.Tick += (_, _) =>
+        {
+            EnsureAutostart();
+            EnsureAgentRunning();
+        };
+        _keepAlive.Start();
+    }
+
+    private static void EnsureAutostart()
+    {
+        try
+        {
+            var tray = Path.Combine(AppContext.BaseDirectory, "KidPcControl.Tray.exe");
+            var agent = Path.Combine(AppContext.BaseDirectory, "KidPcControl.Agent.exe");
+            if (File.Exists(tray)) Autostart.Enable("KidPcControlTray", tray);
+            if (File.Exists(agent)) Autostart.Enable("KidPcControlAgent", agent);
+        }
+        catch { /* ignore */ }
+    }
+
+    private static void EnsureAgentRunning()
+    {
+        try
+        {
+            if (Process.GetProcessesByName("KidPcControl.Agent").Length > 0)
+                return;
+            var agent = Path.Combine(AppContext.BaseDirectory, "KidPcControl.Agent.exe");
+            if (!File.Exists(agent)) return;
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = agent,
+                UseShellExecute = true,
+                WorkingDirectory = AppContext.BaseDirectory
+            });
+        }
+        catch { /* ignore */ }
     }
 
     private StatusWindow CreateStatusWindow()
@@ -58,13 +103,8 @@ public partial class App : Application
     {
         var menu = new ContextMenuStrip();
         menu.Items.Add("Status", null, (_, _) => ShowStatus());
-        menu.Items.Add("Override (hasło admina)…", null, (_, _) => ShowOverride());
-        menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Zamknij tray", null, (_, _) =>
-        {
-            _tray!.Visible = false;
-            Shutdown();
-        });
+        menu.Items.Add("Override / odblokuj (hasło admina)…", null, (_, _) => ShowOverride());
+        // No "Zamknij" — Kid mode must stay running
         return menu;
     }
 
@@ -87,6 +127,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _keepAlive?.Stop();
         if (_tray is not null)
         {
             _tray.Visible = false;

@@ -264,6 +264,40 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void ChangePassword_Click(object sender, RoutedEventArgs e)
+    {
+        if (_client is null)
+        {
+            MessageBox.Show(this, "Wybierz urządzenie Kid.", AppConstants.AppName);
+            return;
+        }
+
+        var pwd = NewAdminPasswordBox.Password ?? string.Empty;
+        var confirm = NewAdminPasswordConfirmBox.Password ?? string.Empty;
+        if (pwd.Length < 4)
+        {
+            ActionResult.Text = "Nowe hasło: minimum 4 znaki.";
+            return;
+        }
+        if (pwd != confirm)
+        {
+            ActionResult.Text = "Hasła nie są zgodne.";
+            return;
+        }
+
+        try
+        {
+            await _client.ChangeAdminPasswordAsync(pwd);
+            NewAdminPasswordBox.Password = string.Empty;
+            NewAdminPasswordConfirmBox.Password = string.Empty;
+            ActionResult.Text = "Hasło admina na Kidzie zmienione.";
+        }
+        catch (Exception ex)
+        {
+            ActionResult.Text = $"Nie zmieniono hasła: {ex.Message}";
+        }
+    }
+
     private async void BlockNow_Click(object sender, RoutedEventArgs e) => await SetBlockedAsync(true);
     private async void Unblock_Click(object sender, RoutedEventArgs e) => await SetBlockedAsync(false);
 

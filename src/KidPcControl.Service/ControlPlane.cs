@@ -188,6 +188,51 @@ public sealed class ControlHttpServer : BackgroundService
                 return;
             }
 
+            if (path == "/api/unlock" && method == "POST")
+            {
+                using var reader = new StreamReader(ctx.Request.InputStream, ctx.Request.ContentEncoding);
+                var body = await reader.ReadToEndAsync();
+                var req = JsonSerializer.Deserialize<UnlockRequest>(body, JsonOptions) ?? new UnlockRequest();
+                if (!AdminCredentials.VerifyPassword(req.Password ?? string.Empty))
+                {
+                    ctx.Response.StatusCode = 401;
+                    await WriteJsonAsync(ctx, new { ok = false, error = "bad_password" });
+                    return;
+                }
+
+                var minutes = Math.Clamp(req.Minutes <= 0 ? 30 : req.Minutes, 5, 24 * 60);
+                var policy = _runtime.Snapshot();
+                policy.DeviceBlocked = false;
+                policy.DailyOverride = new DailyOverride
+                {
+                    Until = DateTimeOffset.Now.AddMinutes(minutes),
+                    LimitsDisabled = true,
+                    Note = $"Unlocked with admin password for {minutes} min"
+                };
+                _runtime.Save(policy);
+                _session.ResetUsage();
+                await WriteJsonAsync(ctx, _session.BuildStatus());
+                return;
+            }
+
+            if (path == "/api/admin-password" && method == "POST")
+            {
+                using var reader = new StreamReader(ctx.Request.InputStream, ctx.Request.ContentEncoding);
+                var body = await reader.ReadToEndAsync();
+                var req = JsonSerializer.Deserialize<AdminPasswordChangeRequest>(body, JsonOptions);
+                var pwd = req?.NewPassword?.Trim() ?? string.Empty;
+                if (pwd.Length < 4)
+                {
+                    ctx.Response.StatusCode = 400;
+                    await WriteJsonAsync(ctx, new { ok = false, error = "password_too_short" });
+                    return;
+                }
+
+                AdminCredentials.SetPassword(pwd);
+                await WriteJsonAsync(ctx, new { ok = true });
+                return;
+            }
+
             ctx.Response.StatusCode = 404;
             ctx.Response.Close();
         }
@@ -224,40 +269,91 @@ public sealed class ControlHttpServer : BackgroundService
 public sealed class SessionTracker
 {
     private readonly PolicyRuntime _runtime;
-    private DateTime _sessionStarted = DateTime.Now;
     private readonly object _gate = new();
+    private double _activeSeconds;
+    private DateTime _lastTick = DateTime.UtcNow;
+    private string _day = DateTime.Now.ToString("yyyy-MM-dd");
 
-    public SessionTracker(PolicyRuntime runtime) => _runtime = runtime;
+    public SessionTracker(PolicyRuntime runtime)
+    {
+        _runtime = runtime;
+        _activeSeconds = ActiveUsageStore.LoadActiveSecondsToday();
+    }
 
     public void ResetUsage()
     {
-        lock (_gate) _sessionStarted = DateTime.Now;
+        lock (_gate)
+        {
+            _activeSeconds = 0;
+            _lastTick = DateTime.UtcNow;
+            _day = DateTime.Now.ToString("yyyy-MM-dd");
+            ActiveUsageStore.SaveActiveSecondsToday(0);
+        }
+    }
+
+    /// <summary>Accumulate only while user is actively using mouse/keyboard (+ grace).</summary>
+    public void Tick()
+    {
+        lock (_gate)
+        {
+            var today = DateTime.Now.ToString("yyyy-MM-dd");
+            if (!string.Equals(_day, today, StringComparison.Ordinal))
+            {
+                _day = today;
+                _activeSeconds = 0;
+            }
+
+            var now = DateTime.UtcNow;
+            var dt = (now - _lastTick).TotalSeconds;
+            _lastTick = now;
+            if (dt <= 0 || dt > 30)
+                return;
+
+            var policy = _runtime.Snapshot();
+            var allowed = AccessEvaluator.IsWithinAllowedHours(policy, DateTime.Now);
+            var overrideActive = policy.DailyOverride is { } o && o.Until > DateTimeOffset.Now && o.LimitsDisabled;
+            if (policy.DeviceBlocked || (!allowed && !overrideActive))
+                return;
+
+            // Already over quota → locked → don't keep counting
+            var max = AccessEvaluator.EffectiveMaxContinuousMinutes(policy);
+            if (_activeSeconds / 60.0 >= max && !overrideActive)
+                return;
+
+            if (!ActivityStore.IsUserActive())
+                return;
+
+            _activeSeconds += dt;
+            ActiveUsageStore.SaveActiveSecondsToday(_activeSeconds);
+        }
     }
 
     public double UsedMinutes
     {
-        get { lock (_gate) return (DateTime.Now - _sessionStarted).TotalMinutes; }
+        get { lock (_gate) return _activeSeconds / 60.0; }
     }
 
     public RuntimeStatus BuildStatus()
     {
+        Tick();
         var policy = _runtime.Snapshot();
-        var allowed = KidPcControl.Shared.Policy.AccessEvaluator.IsWithinAllowedHours(policy, DateTime.Now);
-        var max = KidPcControl.Shared.Policy.AccessEvaluator.EffectiveMaxContinuousMinutes(policy);
+        var allowed = AccessEvaluator.IsWithinAllowedHours(policy, DateTime.Now);
+        var max = AccessEvaluator.EffectiveMaxContinuousMinutes(policy);
         var used = UsedMinutes;
-        var lockedByQuota = allowed && !policy.DeviceBlocked && used >= max;
         var overrideActive = policy.DailyOverride is { } o && o.Until > DateTimeOffset.Now;
+        var limitsOff = overrideActive && policy.DailyOverride!.LimitsDisabled;
+        var lockedByQuota = allowed && !policy.DeviceBlocked && !limitsOff && used >= max;
 
         var reason = policy.DeviceBlocked ? "Zablokowane przez rodzica"
-            : !allowed ? "Poza dozwolonymi godzinami"
-            : lockedByQuota ? "Limit ciągłego czasu wyczerpany"
+            : !allowed && !limitsOff ? "Poza dozwolonymi godzinami"
+            : lockedByQuota ? "Limit aktywnego czasu wyczerpany"
             : "OK";
 
         return new RuntimeStatus
         {
             DeviceId = policy.DeviceId,
             DeviceName = policy.DeviceName,
-            AllowedBySchedule = allowed,
+            AllowedBySchedule = allowed || limitsOff,
             DeviceBlocked = policy.DeviceBlocked,
             LockedByQuota = lockedByQuota,
             MaxContinuousMinutes = max,

@@ -131,7 +131,7 @@
                   <Button Style="{StaticResource GhostButton}" Content="+ Dodaj przedział" HorizontalAlignment="Left"
                           Click="AddHour_Click" Margin="0,0,0,16"/>
 
-                  <TextBlock Text="MAX. CIĄGŁY CZAS (MIN)" Style="{StaticResource SectionLabel}"/>
+                  <TextBlock Text="MAX. AKTYWNY CZAS (MIN — TYLKO MYSZ/KLAWIATURA +5S)" Style="{StaticResource SectionLabel}"/>
                   <TextBox x:Name="MaxUseBox" Text="120" Width="120" HorizontalAlignment="Left"/>
                 </StackPanel>
               </ScrollViewer>
@@ -241,7 +241,15 @@
               <StackPanel Margin="0,8,0,0">
                 <TextBlock Text="KOMUNIKAT BLOKADY URZĄDZENIA" Style="{StaticResource SectionLabel}"/>
                 <TextBox x:Name="LockMessageBox" AcceptsReturn="True" Height="100" TextWrapping="Wrap"
-                         Text="Czas na przerwę. Poproś rodzica o odblokowanie."/>
+                         Text="Czas na przerwę. Poproś rodzica o odblokowanie." Margin="0,0,0,16"/>
+
+                <TextBlock Text="HASŁO ADMINISTRATORA (NA TYM KID)" Style="{StaticResource SectionLabel}"/>
+                <TextBlock Text="Ustawia nowe hasło do odblokowania ekranu / override na Kidzie."
+                           Foreground="#FFB0BAC8" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                <PasswordBox x:Name="NewAdminPasswordBox" Margin="0,0,0,8"/>
+                <PasswordBox x:Name="NewAdminPasswordConfirmBox" Margin="0,0,0,8"/>
+                <Button Style="{StaticResource GhostButton}" Content="Zmień hasło na Kid"
+                        HorizontalAlignment="Left" Click="ChangePassword_Click"/>
               </StackPanel>
             </TabItem>
           </TabControl>

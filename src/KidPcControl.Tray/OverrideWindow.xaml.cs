@@ -45,6 +45,9 @@ public partial class OverrideWindow : Window
         var untilTimed = DateTimeOffset.Now.AddMinutes(minutes);
         var action = ActionBox.SelectedIndex;
 
+        // Password override always clears parent remote block
+        policy.DeviceBlocked = false;
+
         policy.DailyOverride = action switch
         {
             0 => new DailyOverride
@@ -58,7 +61,7 @@ public partial class OverrideWindow : Window
                 Until = endOfDay,
                 ExtraMinutes = minutes,
                 LimitsDisabled = false,
-                Note = $"+{minutes} minutes until end of day"
+                Note = $"+{minutes} active minutes until end of day"
             },
             _ => new DailyOverride
             {

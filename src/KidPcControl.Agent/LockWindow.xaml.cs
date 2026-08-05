@@ -1,6 +1,8 @@
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Threading;
@@ -8,16 +10,16 @@ using KidPcControl.Shared;
 using KidPcControl.Shared.Models;
 using KidPcControl.Shared.Storage;
 using Microsoft.Win32;
-using MessageBox = System.Windows.MessageBox;
 
 namespace KidPcControl.Agent;
 
 public partial class LockWindow : Window
 {
-    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1.5) };
+    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly DispatcherTimer _screenTimer = new() { Interval = TimeSpan.FromSeconds(2) };
     private AnnotationOverlayWindow? _annotationOverlay;
     private string? _lastAnnotationJson;
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(8) };
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -28,13 +30,28 @@ public partial class LockWindow : Window
     public LockWindow()
     {
         InitializeComponent();
-        _timer.Tick += (_, _) => Evaluate();
+        EnsureAutostart();
+        Closing += (_, e) =>
+        {
+            // Never allow closing Agent — keep monitoring / lock / activity
+            e.Cancel = true;
+            if (!IsLockedNow())
+                Hide();
+        };
+
+        _timer.Tick += (_, _) =>
+        {
+            ActivityStore.ReportFromUserSession();
+            EnsureAutostart();
+            Evaluate();
+        };
         _screenTimer.Tick += (_, _) => CaptureScreen();
         _timer.Start();
         _screenTimer.Start();
         Loaded += (_, _) =>
         {
             ApplyProxyFromPolicy();
+            ActivityStore.ReportFromUserSession();
             Evaluate();
             CaptureScreen();
         };
@@ -44,7 +61,56 @@ public partial class LockWindow : Window
         };
     }
 
-    private void Refresh_Click(object sender, RoutedEventArgs e) => Evaluate();
+    private static void EnsureAutostart()
+    {
+        try
+        {
+            var agent = Path.Combine(AppContext.BaseDirectory, "KidPcControl.Agent.exe");
+            var tray = Path.Combine(AppContext.BaseDirectory, "KidPcControl.Tray.exe");
+            if (File.Exists(agent)) Autostart.Enable("KidPcControlAgent", agent);
+            if (File.Exists(tray)) Autostart.Enable("KidPcControlTray", tray);
+        }
+        catch { /* ignore */ }
+    }
+
+    private static bool IsLockedNow()
+    {
+        var status = StatusStore.Load();
+        var policy = PolicyStore.LoadOrCreate();
+        return status?.Locked
+               ?? (!KidPcControl.Shared.Policy.AccessEvaluator.IsWithinAllowedHours(policy, DateTime.Now) || policy.DeviceBlocked);
+    }
+
+    private async void Unlock_Click(object sender, RoutedEventArgs e)
+    {
+        UnlockError.Text = string.Empty;
+        var password = UnlockPassword.Password ?? string.Empty;
+        if (string.IsNullOrEmpty(password))
+        {
+            UnlockError.Text = "Wpisz hasło admina.";
+            return;
+        }
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync(
+                $"http://127.0.0.1:{AppConstants.ControlPort}/api/unlock",
+                new UnlockRequest { Password = password, Minutes = 30 },
+                JsonOptions);
+            if (!response.IsSuccessStatusCode)
+            {
+                UnlockError.Text = "Nieprawidłowe hasło.";
+                return;
+            }
+
+            UnlockPassword.Password = string.Empty;
+            Evaluate();
+        }
+        catch (Exception ex)
+        {
+            UnlockError.Text = $"Błąd: {ex.Message}";
+        }
+    }
 
     private void Evaluate()
     {
@@ -58,8 +124,7 @@ public partial class LockWindow : Window
             ? "Czas na przerwę."
             : policy.LockMessage;
 
-        var locked = status?.Locked
-                     ?? (!KidPcControl.Shared.Policy.AccessEvaluator.IsWithinAllowedHours(policy, DateTime.Now) || policy.DeviceBlocked);
+        var locked = IsLockedNow();
 
         if (status is not null && !string.IsNullOrWhiteSpace(status.LockReason) && status.Locked)
             MessageText.Text = $"{policy.LockMessage}\n\n({status.LockReason})";
@@ -131,7 +196,7 @@ public partial class LockWindow : Window
             var msg = File.ReadAllText(AppConstants.BlockBannerPath);
             File.Delete(AppConstants.BlockBannerPath);
             if (string.IsNullOrWhiteSpace(msg)) return;
-            MessageBox.Show(msg, "Kid PC Control", MessageBoxButton.OK, MessageBoxImage.Warning);
+            System.Windows.MessageBox.Show(msg, "Kid PC Control", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         catch { /* ignore */ }
     }

@@ -39,6 +39,18 @@ public sealed class BlockRequest
     public bool Blocked { get; set; }
 }
 
+public sealed class UnlockRequest
+{
+    public string Password { get; set; } = string.Empty;
+    /// <summary>Minutes of limits-disabled after unlock (default 30).</summary>
+    public int Minutes { get; set; } = 30;
+}
+
+public sealed class AdminPasswordChangeRequest
+{
+    public string NewPassword { get; set; } = string.Empty;
+}
+
 /// <summary>Normalized 0–1 rectangle on primary screen + text shown briefly on Kid.</summary>
 public sealed class ScreenAnnotation
 {

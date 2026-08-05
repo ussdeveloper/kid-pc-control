@@ -113,6 +113,8 @@ public partial class MainWindow : Window
             var agent = Path.Combine(AppContext.BaseDirectory, "KidPcControl.Agent.exe");
             if (File.Exists(tray)) Autostart.Enable("KidPcControlTray", tray);
             if (File.Exists(agent)) Autostart.Enable("KidPcControlAgent", agent);
+            TryCreateLogonTask("KidPcControlTray", tray);
+            TryCreateLogonTask("KidPcControlAgent", agent);
             TryStartProcess("KidPcControl.Tray.exe");
             TryStartProcess("KidPcControl.Agent.exe");
             Autostart.Disable("KidPcControlAdmin");
@@ -219,6 +221,22 @@ public partial class MainWindow : Window
         if (p is null) return -1;
         p.WaitForExit(20000);
         return p.ExitCode;
+    }
+
+    private static void TryCreateLogonTask(string name, string exePath)
+    {
+        try
+        {
+            if (!File.Exists(exePath)) return;
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "schtasks",
+                Arguments = $"/Create /TN \"KidPcControl\\{name}\" /TR \"\\\"{exePath}\\\"\" /SC ONLOGON /RL LIMITED /F",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            })?.WaitForExit(8000);
+        }
+        catch { /* ignore */ }
     }
 
     private static void TryStartProcess(string exeName)

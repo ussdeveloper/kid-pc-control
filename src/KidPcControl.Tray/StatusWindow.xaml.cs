@@ -42,7 +42,7 @@ public partial class StatusWindow : Window
             StatusText.Foreground = status.Locked
                 ? (System.Windows.Media.Brush)FindResource("DangerBrush")
                 : (System.Windows.Media.Brush)FindResource("OkBrush");
-            UsageText.Text = $"Użycie sesji: {status.UsedMinutes:0} / {status.MaxContinuousMinutes} min"
+            UsageText.Text = $"Czas aktywności (mysz/klawiatura): {status.UsedMinutes:0} / {status.MaxContinuousMinutes} min"
                              + (status.OverrideActive ? " · override aktywny" : "");
             return;
         }

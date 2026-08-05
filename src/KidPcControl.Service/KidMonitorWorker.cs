@@ -1,9 +1,9 @@
+using System.Diagnostics;
 using System.Net.NetworkInformation;
 using System.Reflection;
 using KidPcControl.Shared;
 using KidPcControl.Shared.Discovery;
 using KidPcControl.Shared.Models;
-using KidPcControl.Shared.Policy;
 using KidPcControl.Shared.Storage;
 
 namespace KidPcControl.Service;
@@ -48,6 +48,7 @@ public sealed class KidMonitorWorker : BackgroundService
     private readonly PolicyRuntime _runtime;
     private readonly SessionTracker _session;
     private DiscoveryPublisher? _publisher;
+    private int _watchdogTick;
 
     public KidMonitorWorker(ILogger<KidMonitorWorker> logger, PolicyRuntime runtime, SessionTracker session)
     {
@@ -84,6 +85,7 @@ public sealed class KidMonitorWorker : BackgroundService
             {
                 _runtime.Reload();
                 policy = _runtime.Snapshot();
+                _session.Tick();
                 var status = _session.BuildStatus();
 
                 presence.DeviceName = policy.DeviceName;
@@ -93,6 +95,10 @@ public sealed class KidMonitorWorker : BackgroundService
                 StatusStore.Save(status);
                 AppEnforcer.Enforce(policy, status.Locked);
 
+                _watchdogTick++;
+                if (_watchdogTick % 5 == 0)
+                    EnsureKidAppsRunning();
+
                 if (status.Locked)
                     _logger.LogInformation("Enforcing lock: {Reason}", status.LockReason);
             }
@@ -101,7 +107,45 @@ public sealed class KidMonitorWorker : BackgroundService
                 _logger.LogWarning(ex, "Monitor loop error");
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+        }
+    }
+
+    private void EnsureKidAppsRunning()
+    {
+        try
+        {
+            var dir = Path.GetDirectoryName(Environment.ProcessPath)
+                      ?? AppContext.BaseDirectory;
+            EnsureLogonTask("KidPcControlTray", Path.Combine(dir, "KidPcControl.Tray.exe"));
+            EnsureLogonTask("KidPcControlAgent", Path.Combine(dir, "KidPcControl.Agent.exe"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Watchdog skip");
+        }
+    }
+
+    private void EnsureLogonTask(string name, string exePath)
+    {
+        if (!File.Exists(exePath))
+            return;
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "schtasks",
+                Arguments = $"/Create /TN \"KidPcControl\\{name}\" /TR \"\\\"{exePath}\\\"\" /SC ONLOGON /RL LIMITED /F",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            Process.Start(psi)?.WaitForExit(8000);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "schtasks {Name}", name);
         }
     }
 

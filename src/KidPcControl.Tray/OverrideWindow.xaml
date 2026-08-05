@@ -18,8 +18,8 @@
 
       <TextBlock Text="Akcja" Margin="0,0,0,4" Foreground="#FFB0BAC8"/>
       <ComboBox x:Name="ActionBox" Margin="0,0,0,12" SelectedIndex="0">
-        <ComboBoxItem Content="Wyłącz limity na czas"/>
-        <ComboBoxItem Content="Dodaj czas (minuty)"/>
+        <ComboBoxItem Content="Odblokuj / wyłącz limity na czas"/>
+        <ComboBoxItem Content="Dodaj czas aktywności (minuty)"/>
         <ComboBoxItem Content="Zmień limity do końca dnia"/>
       </ComboBox>
 

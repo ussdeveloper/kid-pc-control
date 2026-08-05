@@ -6,17 +6,22 @@
         WindowStyle="None"
         Topmost="True"
         Background="#FF0F1216"
-        Foreground="#FFEEF2F7">
+        Foreground="#FFEEF2F7"
+        ShowInTaskbar="False">
   <Border Background="#E6101010">
-    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="640">
+    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="520">
       <TextBlock Text="Kid PC Control" FontSize="18" Foreground="#FF00D4C8" HorizontalAlignment="Center"/>
       <TextBlock x:Name="MessageText" Text="Czas na przerwę."
-                 FontSize="36" FontWeight="SemiBold" TextWrapping="Wrap"
+                 FontSize="32" FontWeight="SemiBold" TextWrapping="Wrap"
                  TextAlignment="Center" Margin="0,16,0,12" Foreground="#FFEEF2F7"/>
-      <TextBlock Text="Poproś rodzica o hasło admina w ikonie tray, aby dodać czas lub wyłączyć limity."
-                 Foreground="#FFB0BAC8" TextWrapping="Wrap" TextAlignment="Center"/>
-      <Button Style="{StaticResource PrimaryButton}" Content="Odśwież status"
-              Margin="0,28,0,0" HorizontalAlignment="Center" Click="Refresh_Click"/>
+      <TextBlock Text="Odblokowanie tylko hasłem administratora."
+                 Foreground="#FFB0BAC8" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,16"/>
+
+      <TextBlock Text="Hasło admina" Foreground="#FFB0BAC8" Margin="0,0,0,4"/>
+      <PasswordBox x:Name="UnlockPassword" Margin="0,0,0,8" Height="36"/>
+      <TextBlock x:Name="UnlockError" Foreground="#FFFF6B81" Height="20" Margin="0,0,0,8"/>
+      <Button Style="{StaticResource PrimaryButton}" Content="Odblokuj na 30 minut"
+              HorizontalAlignment="Stretch" Click="Unlock_Click"/>
     </StackPanel>
   </Border>
 </Window>

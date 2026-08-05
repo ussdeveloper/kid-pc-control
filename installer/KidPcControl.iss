@@ -2,7 +2,7 @@
 ; Build with Inno Setup Compiler after publishing to installer\payload
 
 #define MyAppName "Kid PC Control"
-#define MyAppVersion "0.2.6"
+#define MyAppVersion "0.2.7"
 #define MyAppPublisher "ussdeveloper"
 #define MyAppURL "https://github.com/ussdeveloper/kid-pc-control"
 

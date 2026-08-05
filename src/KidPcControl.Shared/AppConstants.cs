@@ -21,4 +21,8 @@ public static class AppConstants
     public static string ScreenPath => Path.Combine(ProgramDataDir, "screen.jpg");
     public static string BlockBannerPath => Path.Combine(ProgramDataDir, "url-block.txt");
     public static string AnnotationPath => Path.Combine(ProgramDataDir, "annotation.json");
+    public static string ActivityPath => Path.Combine(ProgramDataDir, "activity.json");
+    public static string UsagePath => Path.Combine(ProgramDataDir, "active-usage.json");
+    /// <summary>Idle grace after last mouse/keyboard input still counts as active use.</summary>
+    public static readonly TimeSpan ActivityGrace = TimeSpan.FromSeconds(5);
 }

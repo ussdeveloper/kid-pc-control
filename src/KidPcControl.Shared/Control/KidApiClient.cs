@@ -64,6 +64,26 @@ public sealed class KidApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task ChangeAdminPasswordAsync(string newPassword, CancellationToken ct = default)
+    {
+        var response = await _http.PostAsJsonAsync(
+            new Uri(BaseUri, "api/admin-password"),
+            new AdminPasswordChangeRequest { NewPassword = newPassword },
+            JsonOptions,
+            ct);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task UnlockWithPasswordAsync(string password, int minutes = 30, CancellationToken ct = default)
+    {
+        var response = await _http.PostAsJsonAsync(
+            new Uri(BaseUri, "api/unlock"),
+            new UnlockRequest { Password = password, Minutes = minutes },
+            JsonOptions,
+            ct);
+        response.EnsureSuccessStatusCode();
+    }
+
     private async Task<T?> GetAsync<T>(string path, CancellationToken ct)
     {
         try
