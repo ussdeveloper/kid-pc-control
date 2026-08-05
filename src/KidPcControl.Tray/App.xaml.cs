@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Forms;
 using KidPcControl.Shared;
+using KidPcControl.Updater;
 using Application = System.Windows.Application;
 
 namespace KidPcControl.Tray;
@@ -14,6 +15,7 @@ public partial class App : Application
     private StatusWindow? _statusWindow;
     private Icon? _customIcon;
     private System.Windows.Threading.DispatcherTimer? _keepAlive;
+    private readonly CancellationTokenSource _updateCts = new();
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -28,7 +30,7 @@ public partial class App : Application
         _tray = new NotifyIcon
         {
             Visible = true,
-            Text = "Kid PC Control",
+            Text = $"Kid PC Control v{AppUpdateCoordinator.CurrentVersion}",
             Icon = _customIcon ?? SystemIcons.Shield,
             ContextMenuStrip = BuildMenu()
         };
@@ -41,6 +43,24 @@ public partial class App : Application
             EnsureAgentRunning();
         };
         _keepAlive.Start();
+
+        // Kid auto-update (also Service checks; Tray can show UAC if needed)
+        AppUpdateCoordinator.StartBackgroundLoop(
+            initialDelay: TimeSpan.FromSeconds(25),
+            interval: AppConstants.UpdateCheckInterval,
+            onStatus: msg =>
+            {
+                try
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (_tray is not null)
+                            _tray.Text = msg.Length > 60 ? msg[..60] : msg;
+                    });
+                }
+                catch { /* ignore */ }
+            },
+            ct: _updateCts.Token);
     }
 
     private static void EnsureAutostart()
@@ -104,8 +124,30 @@ public partial class App : Application
         var menu = new ContextMenuStrip();
         menu.Items.Add("Status", null, (_, _) => ShowStatus());
         menu.Items.Add("Override / odblokuj (hasło admina)…", null, (_, _) => ShowOverride());
-        // No "Zamknij" — Kid mode must stay running
+        menu.Items.Add("Sprawdź aktualizacje", null, async (_, _) => await CheckUpdatesManualAsync());
         return menu;
+    }
+
+    private async Task CheckUpdatesManualAsync()
+    {
+        try
+        {
+            if (_tray is not null)
+                _tray.Text = "Sprawdzam aktualizacje…";
+            var (check, apply) = await AppUpdateCoordinator.CheckAndApplyAsync();
+            var msg = apply is { Started: true }
+                ? $"Instaluję v{check.LatestVersion}…"
+                : check.UpdateAvailable
+                    ? (apply?.Message ?? $"Dostępna v{check.LatestVersion}")
+                    : $"Aktualne (v{AppUpdateCoordinator.CurrentVersion})";
+            if (_tray is not null)
+                _tray.Text = msg.Length > 60 ? msg[..60] : msg;
+            _tray?.ShowBalloonTip(4000, "Kid PC Control", msg, ToolTipIcon.Info);
+        }
+        catch (Exception ex)
+        {
+            _tray?.ShowBalloonTip(4000, "Kid PC Control", $"Update: {ex.Message}", ToolTipIcon.Warning);
+        }
     }
 
     private void ShowStatus()
@@ -127,6 +169,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _updateCts.Cancel();
         _keepAlive?.Stop();
         if (_tray is not null)
         {

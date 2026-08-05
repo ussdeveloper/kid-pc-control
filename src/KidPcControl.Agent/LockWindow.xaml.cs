@@ -9,6 +9,7 @@ using System.Windows.Threading;
 using KidPcControl.Shared;
 using KidPcControl.Shared.Models;
 using KidPcControl.Shared.Storage;
+using KidPcControl.Updater;
 using Microsoft.Win32;
 
 namespace KidPcControl.Agent;
@@ -20,6 +21,7 @@ public partial class LockWindow : Window
     private AnnotationOverlayWindow? _annotationOverlay;
     private string? _lastAnnotationJson;
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(8) };
+    private readonly CancellationTokenSource _updateCts = new();
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -33,7 +35,6 @@ public partial class LockWindow : Window
         EnsureAutostart();
         Closing += (_, e) =>
         {
-            // Never allow closing Agent — keep monitoring / lock / activity
             e.Cancel = true;
             if (!IsLockedNow())
                 Hide();
@@ -54,9 +55,14 @@ public partial class LockWindow : Window
             ActivityStore.ReportFromUserSession();
             Evaluate();
             CaptureScreen();
+            AppUpdateCoordinator.StartBackgroundLoop(
+                initialDelay: TimeSpan.FromSeconds(45),
+                interval: AppConstants.UpdateCheckInterval,
+                ct: _updateCts.Token);
         };
         Closed += (_, _) =>
         {
+            _updateCts.Cancel();
             try { _annotationOverlay?.Close(); } catch { /* ignore */ }
         };
     }

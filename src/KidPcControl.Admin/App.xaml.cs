@@ -29,7 +29,6 @@ public partial class App : Application
         };
         _tray.DoubleClick += (_, _) => ShowMain();
 
-        // Start in tray; open panel once so parent sees it works
         ShowMain();
     }
 
@@ -38,6 +37,12 @@ public partial class App : Application
         var menu = new ContextMenuStrip();
         menu.Items.Add("Otwórz panel Admin", null, (_, _) => ShowMain());
         menu.Items.Add("Odśwież urządzenia", null, (_, _) => _main?.ForceRefresh());
+        menu.Items.Add("Sprawdź aktualizacje", null, async (_, _) =>
+        {
+            if (_main is null) return;
+            ShowMain();
+            await _main.CheckUpdatesNowAsync();
+        });
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Zakończ Admin", null, (_, _) => ExitApp());
         return menu;
@@ -53,7 +58,6 @@ public partial class App : Application
 
     private void Main_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
-        // Close → hide to tray (what user expected)
         e.Cancel = true;
         _main?.Hide();
         _tray?.ShowBalloonTip(

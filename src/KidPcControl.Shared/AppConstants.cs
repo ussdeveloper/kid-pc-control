@@ -11,7 +11,7 @@ public static class AppConstants
     public const int ControlPort = 47892;
     public const int UrlProxyPort = 47893;
     public const string DiscoveryMagic = "KIDPCCTRL1";
-    public static readonly TimeSpan UpdateCheckInterval = TimeSpan.FromHours(6);
+    public static readonly TimeSpan UpdateCheckInterval = TimeSpan.FromHours(2);
 
     public static string ProgramDataDir =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), ProductFolder);

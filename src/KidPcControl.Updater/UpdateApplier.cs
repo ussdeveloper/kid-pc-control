@@ -43,9 +43,18 @@ public static class UpdateApplier
             _inProgress = true;
         }
 
+        var lockPath = Path.Combine(AppConstants.ProgramDataDir, "update.lock");
         try
         {
             Directory.CreateDirectory(AppConstants.ProgramDataDir);
+            if (File.Exists(lockPath))
+            {
+                var age = DateTime.UtcNow - File.GetLastWriteTimeUtc(lockPath);
+                if (age < TimeSpan.FromMinutes(20))
+                    return new UpdateApplyResult { Message = "Aktualizacja już trwa (inny proces)." };
+            }
+            File.WriteAllText(lockPath, $"{check.LatestVersion}|{DateTimeOffset.UtcNow:O}");
+
             var setupPath = Path.Combine(
                 AppConstants.ProgramDataDir,
                 $"KidPcControl-Setup-v{check.LatestVersion}.exe");
@@ -72,7 +81,10 @@ public static class UpdateApplier
 
             var proc = Process.Start(psi);
             if (proc is null)
+            {
+                try { File.Delete(lockPath); } catch { /* ignore */ }
                 return new UpdateApplyResult { Message = "Nie uruchomiono instalatora (UAC anulowane?)." };
+            }
 
             return new UpdateApplyResult
             {
@@ -83,6 +95,7 @@ public static class UpdateApplier
         }
         catch (Exception ex)
         {
+            try { File.Delete(lockPath); } catch { /* ignore */ }
             return new UpdateApplyResult { Message = $"Nie udało się zaktualizować: {ex.Message}" };
         }
         finally

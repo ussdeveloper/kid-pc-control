@@ -32,7 +32,8 @@
       <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
         <TextBlock x:Name="UpdateStatusText" VerticalAlignment="Center" Margin="0,0,12,0"
                    Foreground="{StaticResource MutedBrush}" FontSize="12" Text="…"/>
-        <Button Style="{StaticResource GhostButton}" Content="Odśwież listę" Click="Refresh_Click"/>
+        <Button Style="{StaticResource GhostButton}" Content="Odśwież listę" Click="Refresh_Click" Margin="0,0,8,0"/>
+        <Button Style="{StaticResource GhostButton}" Content="Aktualizuj" Click="CheckUpdate_Click"/>
       </StackPanel>
     </Grid>
 

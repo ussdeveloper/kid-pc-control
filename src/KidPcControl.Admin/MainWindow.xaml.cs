@@ -31,6 +31,8 @@ public partial class MainWindow : Window
     private bool _suppressSelectionLoad;
     private BitmapSource? _lastScreen;
 
+    private readonly CancellationTokenSource _updateCts = new();
+
     public MainWindow()
     {
         InitializeComponent();
@@ -48,9 +50,18 @@ public partial class MainWindow : Window
         _screenTimer.Tick += async (_, _) => await RefreshScreenAsync();
         _refreshTimer.Start();
         _screenTimer.Start();
-        Loaded += async (_, _) => await CheckUpdatesAsync();
+        Loaded += (_, _) =>
+        {
+            UpdateStatusText.Text = $"v{AppUpdateCoordinator.CurrentVersion} · sprawdzam…";
+            AppUpdateCoordinator.StartBackgroundLoop(
+                initialDelay: TimeSpan.FromSeconds(3),
+                interval: AppConstants.UpdateCheckInterval,
+                onStatus: msg => Dispatcher.Invoke(() => UpdateStatusText.Text = msg),
+                ct: _updateCts.Token);
+        };
         Closed += async (_, _) =>
         {
+            _updateCts.Cancel();
             _refreshTimer.Stop();
             _screenTimer.Stop();
             await _listener.DisposeAsync();
@@ -58,6 +69,8 @@ public partial class MainWindow : Window
     }
 
     public void ForceRefresh() => RefreshList();
+
+    public Task CheckUpdatesNowAsync() => CheckUpdatesAsync();
 
     private void Refresh_Click(object sender, RoutedEventArgs e) => RefreshList();
 
@@ -385,28 +398,29 @@ public partial class MainWindow : Window
                               ?? new List<string>();
     }
 
+    private async void CheckUpdate_Click(object sender, RoutedEventArgs e) => await CheckUpdatesAsync();
+
     private async Task CheckUpdatesAsync()
     {
         try
         {
-            var version = Assembly.GetExecutingAssembly()
-                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.2.6";
-            var current = version.Split('+')[0];
-            var checker = new GitHubUpdateChecker(current);
-            var result = await checker.CheckAsync();
-            if (!result.UpdateAvailable)
+            UpdateStatusText.Text = $"v{AppUpdateCoordinator.CurrentVersion} · sprawdzam…";
+            var (check, apply) = await AppUpdateCoordinator.CheckAndApplyAsync();
+            if (apply is { Started: true })
             {
-                UpdateStatusText.Text = string.IsNullOrWhiteSpace(result.Message) || result.Message.Contains("Checked", StringComparison.OrdinalIgnoreCase) || result.Message.Contains("Not modified", StringComparison.OrdinalIgnoreCase)
-                    ? $"Aktualne (v{current})"
-                    : $"v{current} · {result.Message}";
+                UpdateStatusText.Text = $"Instaluję v{check.LatestVersion}…";
                 return;
             }
 
-            UpdateStatusText.Text = $"Dostępna v{result.LatestVersion} — pobieram…";
-            var apply = await UpdateApplier.DownloadAndApplyAsync(result);
-            UpdateStatusText.Text = apply.Started
-                ? $"Instaluję v{result.LatestVersion}…"
-                : $"Update: {apply.Message}";
+            if (check.UpdateAvailable)
+            {
+                UpdateStatusText.Text = apply?.Message ?? $"Dostępna v{check.LatestVersion}";
+                return;
+            }
+
+            UpdateStatusText.Text = check.RateLimited
+                ? "Aktualizacje: limit GitHub"
+                : $"Aktualne (v{AppUpdateCoordinator.CurrentVersion})";
         }
         catch
         {
