@@ -1,0 +1,11 @@
+﻿<Application x:Class="KidPcControl.Agent.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="LockWindow.xaml">
+  <Application.Resources>
+    <SolidColorBrush x:Key="BgBrush" Color="#E6101010"/>
+    <SolidColorBrush x:Key="TextBrush" Color="#FFF3F3F3"/>
+    <SolidColorBrush x:Key="MutedBrush" Color="#FFB3B3B3"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#FF60CDFF"/>
+  </Application.Resources>
+</Application>

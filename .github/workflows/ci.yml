@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Restore
+        run: dotnet restore KidPcControl.sln
+      - name: Build
+        run: dotnet build KidPcControl.sln -c Release --no-restore
+      - name: Test compile publish
+        run: |
+          dotnet publish src/KidPcControl.Admin/KidPcControl.Admin.csproj -c Release -r win-x64 --self-contained false -o artifacts/Admin
+          dotnet publish src/KidPcControl.Service/KidPcControl.Service.csproj -c Release -r win-x64 --self-contained false -o artifacts/Service
+          dotnet publish src/KidPcControl.Tray/KidPcControl.Tray.csproj -c Release -r win-x64 --self-contained false -o artifacts/Tray
+          dotnet publish src/KidPcControl.Agent/KidPcControl.Agent.csproj -c Release -r win-x64 --self-contained false -o artifacts/Agent
+          dotnet publish src/KidPcControl.Setup/KidPcControl.Setup.csproj -c Release -r win-x64 --self-contained false -o artifacts/Setup

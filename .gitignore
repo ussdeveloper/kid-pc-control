@@ -1,0 +1,42 @@
+## Build
+bin/
+obj/
+out/
+publish/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa]rtifacts/
+
+## IDE
+.vs/
+.idea/
+*.swp
+*~
+
+## Secrets — never commit
+githu
+*.pat
+.env
+.env.*
+*.pem
+*.pfx
+
+## Installer output
+installer/output/
+*.exe
+!installer/*.iss
+
+## OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+## Logs
+*.log
+logs/
